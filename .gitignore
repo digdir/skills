@@ -416,3 +416,8 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Go binaries
+cli/digdir-cli
+cli/digdir-cli.exe
+cli/dist/
