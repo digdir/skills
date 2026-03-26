@@ -10,25 +10,38 @@ import (
 	"github.com/digdir/skills/cli/internal/installer"
 	"github.com/digdir/skills/cli/internal/skill"
 	"github.com/digdir/skills/cli/internal/tui"
+	"github.com/digdir/skills/cli/internal/updater"
 )
+
+// Set via -ldflags at build time.
+var version = "dev"
 
 func main() {
 	args := os.Args[1:]
 
-	// Extract --source global flag manually
+	// Extract global flags manually so they work with any subcommand position
 	source := ""
+	showVersion := false
 	var filtered []string
 	for i := 0; i < len(args); i++ {
-		if (args[i] == "--source" || args[i] == "-source") && i+1 < len(args) {
+		switch {
+		case args[i] == "--version" || args[i] == "-version" || args[i] == "-v":
+			showVersion = true
+		case (args[i] == "--source" || args[i] == "-source") && i+1 < len(args):
 			source = args[i+1]
-			i++ // skip value
-		} else if strings.HasPrefix(args[i], "--source=") {
+			i++
+		case strings.HasPrefix(args[i], "--source="):
 			source = strings.TrimPrefix(args[i], "--source=")
-		} else if strings.HasPrefix(args[i], "-source=") {
+		case strings.HasPrefix(args[i], "-source="):
 			source = strings.TrimPrefix(args[i], "-source=")
-		} else {
+		default:
 			filtered = append(filtered, args[i])
 		}
+	}
+
+	if showVersion {
+		fmt.Printf("digdir-cli %s\n", version)
+		return
 	}
 
 	subcmd := ""
@@ -41,6 +54,10 @@ func main() {
 		cmdList(source)
 	case "install":
 		cmdInstall(source, filtered[1:])
+	case "update":
+		cmdUpdate()
+	case "version":
+		fmt.Printf("digdir-cli %s\n", version)
 	case "help":
 		printUsage()
 	default:
@@ -160,20 +177,31 @@ func cmdInstall(sourcePath string, args []string) {
 	}
 }
 
+func cmdUpdate() {
+	if err := updater.Update(version); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
 func printUsage() {
-	fmt.Println(`digdir-cli - Provision agent skills from digdir/skills
+	fmt.Printf(`digdir-cli %s - Provision agent skills from digdir/skills
 
 Usage:
   digdir-cli                              Interactive TUI mode
   digdir-cli list                         List available skills
   digdir-cli install [flags]              Install skills non-interactively
+  digdir-cli update                       Update to the latest release
+  digdir-cli version                      Show version
   digdir-cli help                         Show this help
 
 Global flags:
   --source <path>                         Use local skills repo instead of GitHub
+  --version, -v                           Show version
 
 Install flags:
   --framework <name>                      Agent framework (claude-code, cursor, copilot, codex)
   --skills <name,name,...>                Comma-separated skill names
-  --target <path|global>                  Repo path or "global" for global install`)
+  --target <path|global>                  Repo path or "global" for global install
+`, version)
 }

@@ -45,7 +45,7 @@ jobs:
           CGO_ENABLED: "0"
         run: |
           mkdir -p dist
-          go build -ldflags="-s -w" -o dist/digdir-cli-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }} .
+          go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o dist/digdir-cli-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }} .
 
       - uses: actions/upload-artifact@v4
         with:
